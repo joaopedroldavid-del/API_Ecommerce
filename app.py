@@ -1,13 +1,22 @@
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
+from flask_cors import CORS
+from flask_login import UserMixin
 
 # Instaciamento do objeto Flask
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///ecommerce.db'
 
 db = SQLAlchemy(app)
+CORS(app)
 
 # Modelagem
+# User (id, username, password)
+class User(db.Model, UserMixin):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(120), nullable=False, unique=True)
+    password = db.Column(db.String(120), nullable=False)
+
 # Produto ( id, name, price, description )
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -34,6 +43,53 @@ def delete_product(product_id):
             return jsonify({"message": "Product delete sucessfully"}), 200
         return jsonify({"message": "Product not found"}), 404
 
+
+@app.route('/api/products/<int:product_id>', methods=["GET"])
+def get_product_details(product_id):
+     product = Product.query.get(product_id)
+     if product:
+        return jsonify({
+            "id": product_id,
+            "name": product.name,
+            "price": product.price,
+            "description": product.description
+        })
+     return jsonify({"message" : "Product not found"}), 404
+
+@app.route('/api/products/update/<int:product_id>', methods=["PUT"])
+def update_product(product_id):
+    product = Product.query.get(product_id)
+    if not product:
+        return jsonify({"message" : "Product not found"}), 404
+
+    data = request.json
+    if 'name' in data:
+        product.name = data['name']
+
+    if 'price' in data:
+        product.price = data['price']
+
+    if 'description' in data:
+        product.description = data['description']
+
+    db.session.commit()
+    return jsonify({"message" : "Product updated sucessfully"})
+
+@app.route('/api/products', methods=["GET"])
+def get_products():
+    products = Product.query.all()  
+    product_list = [] 
+    
+    for product in products:  
+        product_data = {
+            "id": product.id,
+            "name": product.name,
+            "price": product.price,
+            "description": product.description
+        }
+        product_list.append(product_data)
+    
+    return {"products": product_list}, 200
 
 @app.route('/')
 def hello_world():
