@@ -143,10 +143,10 @@ def add_cart(product_id):
     #Password
     product = Product.query.get(product_id)
 
-    print(user)
-    print(product)
-
     if user and product:
+        cart_item = CartItem(user_id = user.id, product_id = product.id)
+        db.session.add(cart_item)
+        db.session.commit()
         return jsonify({"message" : "Item added to cart sucessfully"}), 200
     return jsonify({"message" : "Item not found"}), 404
 
