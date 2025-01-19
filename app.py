@@ -150,6 +150,47 @@ def add_cart(product_id):
         return jsonify({"message" : "Item added to cart sucessfully"}), 200
     return jsonify({"message" : "Item not found"}), 404
 
+# Implement the remove to cart functionality
+@app.route('/api/cart/remove/<int:product_id>', methods =["DELETE"])
+@login_required
+def remove_from_cart(product_id):
+    # Prouct, User = Item cart
+    cart_item = CartItem.query.filter_by(user_id=current_user.id, product_id=product_id).first()
+    if cart_item:
+        db.session.delete(cart_item)
+        db.session.commit()
+        return jsonify({"message" : "Item removed from the cart sucessfully"}), 200
+    return jsonify({"message" : " Failed to remove from the cart"}), 400
+
+# Implement the add to get a list of cart
+@app.route('/api/cart', methods =["GET"])
+@login_required
+def view_cart():
+    user = User.query.get(int(current_user.id))
+    cart_items = user.cart
+    cart_content = []
+    for cart_item in cart_items:
+        product = Product.query.get(cart_item.product_id)
+        cart_content.append({
+                            "id" : cart_item.id,
+                            "user_id" : cart_item.user_id,
+                            "product_id" : cart_item.product_id,
+                            "product_name" : product.name,
+                            "product_price" : product.price
+                        })
+    return jsonify(cart_content)
+
+# Implements checkout
+@app.route('/api/cart/checkout', methods = ["POST"])
+@login_required
+def checkout():
+    user = User.query.get(int(current_user.id))
+    cart_items = user.cart
+    for cart_item in cart_items:
+        db.session.delete(cart_item)
+    db.session.commit()
+    return jsonify({"message" : "Checkout sucessfully. Cart has been cleanred"}), 200
+
 # Main entry point: Runs the application
 if __name__ == '__main__':
     app.run(debug=True)  # Run the app in debug mode (not for production)
